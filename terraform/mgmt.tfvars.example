@@ -9,6 +9,7 @@ pve = {
   "template_vm_id"    = 1007
   "storage_disks"     = ""
   "storage_cloudinit" = ""
+  "storage_efi"       = ""
   "cp_mem"            = 8192
   "dns_domain"        = ""
   "dns_server"        = ""
@@ -17,8 +18,10 @@ pve = {
 }
 
 talos = {
+  "vm_name"      = "talos-mgmt"
+  "version"      = "1.13.0"
   "cluster_name" = "mgmt"
+  
   "cp_ip"        = ""
   "vip"          = ""
-  "version"      = "1.13.0"
 }

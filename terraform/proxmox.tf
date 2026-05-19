@@ -34,6 +34,10 @@ resource "proxmox_virtual_environment_vm" "template" {
     size         = 30
   }
 
+  efi_disk {
+    datastore_id = var.pve.storage_efi
+  }
+
   network_device {
     bridge = "vmbr0"
   }
@@ -42,13 +46,16 @@ resource "proxmox_virtual_environment_vm" "template" {
     type = "l26"
   }
 
+  machine = "q35"
+  bios    = "ovmf"
+
   agent {
     enabled = true
   }
 }
 
 resource "proxmox_virtual_environment_vm" "controlplane" {
-  name      = "talos-mgmt"
+  name      = var.talos.vm_name
   tags      = ["talos", "${var.talos.cluster_name}"]
   node_name = var.pve.node_name
   vm_id     = var.pve.vm_id
@@ -71,6 +78,10 @@ resource "proxmox_virtual_environment_vm" "controlplane" {
     size         = 30
   }
 
+  efi_disk {
+    datastore_id = var.pve.storage_efi
+  }
+
   network_device {
     bridge  = "vmbr0"
     vlan_id = var.pve.vlan_id
@@ -79,6 +90,9 @@ resource "proxmox_virtual_environment_vm" "controlplane" {
   operating_system {
     type = "l26"
   }
+
+  machine = "q35"
+  bios    = "ovmf"
 
   agent {
     enabled = true

@@ -9,6 +9,7 @@ variable "pve" {
     template_vm_id    = number
     storage_disks     = string
     storage_cloudinit = string
+    storage_efi       = string
     cp_mem            = number
     dns_domain        = string
     dns_server        = string
@@ -19,9 +20,10 @@ variable "pve" {
 
 variable "talos" {
   type = object({
-    cluster_name = string
-    cp_ip        = string
-    vip          = string
-    version      = string
+    cluster_name   = string
+    vm_name        = string
+    cp_ip          = string
+    vip            = string
+    version        = string
   })
 }
