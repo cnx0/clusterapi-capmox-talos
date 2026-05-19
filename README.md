@@ -12,9 +12,9 @@ terraform output -raw kubeconfig > mgmt
 ```shell
 pveum user add capmox@pve
 pveum user token add capmox@pve capi --privsep 1
-pveum role add Terraform -privs "Realm.AllocateUser, VM.PowerMgmt, VM.GuestAgent.Unrestricted, Sys.Console, Sys.Audit, Sys.AccessNetwork, VM.Config.Cloudinit, VM.Replicate, Pool.Allocate, SDN.Audit, Realm.Allocate, SDN.Use, Mapping.Modify, VM.Config.Memory, VM.GuestAgent.FileSystemMgmt, VM.Allocate, SDN.Allocate, VM.Console, VM.Clone, VM.Backup, Datastore.AllocateTemplate, VM.Snapshot, VM.Config.Network, Sys.Incoming, Sys.Modify, VM.Snapshot.Rollback, VM.Config.Disk, Datastore.Allocate, VM.Config.CPU, VM.Config.CDROM, Group.Allocate, Datastore.Audit, VM.Migrate, VM.GuestAgent.FileWrite, Mapping.Use, Datastore.AllocateSpace, Sys.Syslog, VM.Config.Options, Pool.Audit, User.Modify, VM.Config.HWType, VM.Audit, Sys.PowerMgmt, VM.GuestAgent.Audit, Mapping.Audit, VM.GuestAgent.FileRead, Permissions.Modify"
-pveum aclmod / --users capmox@pve --roles Terraform
-pveum aclmod / --tokens "capmox@pve!capi" --roles Terraform
+pveum role add CAPMOX -privs "Sys.Audit,Pool.Audit,VM.Audit,VM.Allocate,VM.Clone,VM.Config.CPU,VM.Config.Memory,VM.Config.Disk,VM.Config.Network,VM.Config.CDROM,VM.Config.Cloudinit,VM.Config.Options,VM.Config.HWType,VM.PowerMgmt,VM.Migrate,Datastore.Audit,Datastore.AllocateSpace,SDN.Audit,SDN.Use"
+pveum aclmod / --users capmox@pve --roles CAPMOX
+pveum aclmod / --tokens "capmox@pve!capi" --roles CAPMOX
 ```
 
 ## ~/.cluster-api/clusterctl.yaml
@@ -39,21 +39,11 @@ providers:
 ## Init and create cluster
 In management context:
 ```shell
-clusterctl init --infrastructure proxmox --ipam in-cluster --control-plane talos --bootstrap talos
-kubectl apply -f prod-cluster.yaml
-clusterctl describe cluster prod1
-clusterctl get kubeconfig prod1 > prod
+clusterctl init --infrastructure proxmox --ipam in-cluster --control-plane talos --bootstrap talos --addon helm
+kubectl apply -f example-cluster.yaml
+clusterctl describe cluster example-cluster
+clusterctl get kubeconfig example-cluster > example
 ```
 
 ## Install Cilium
-Change `cilium-values.yaml`, then:
-
-```shell
-kubectl --kubeconfig prod create ns cilium 
-
-kubectl --kubeconfig prod label ns cilium \
-  pod-security.kubernetes.io/enforce=privileged \
-  pod-security.kubernetes.io/audit=privileged \
-  pod-security.kubernetes.io/warn=privileged
-helm install cilium cilium/cilium --version 1.19.1 --namespace cilium -f cilium-values.yaml --kubeconfig prod
-```
+Set label in cluster manifest to `cilium: enblaed` and apply `cni.yaml`.

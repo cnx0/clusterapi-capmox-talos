@@ -1,22 +1,24 @@
-apiVersion: cluster.x-k8s.io/v1beta1
+apiVersion: cluster.x-k8s.io/v1beta2
 kind: Cluster
 metadata:
-  name: test-cluster
+  name: example-cluster
   namespace: default
+  labels:
+    cilium: enabled
 spec:
   controlPlaneRef:
-    apiVersion: controlplane.cluster.x-k8s.io/v1alpha3
+    apiGroup: controlplane.cluster.x-k8s.io
     kind: TalosControlPlane
-    name: capi-test-cp
+    name: capi-example-cp
   infrastructureRef:
-    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+    apiGroup: infrastructure.cluster.x-k8s.io
     kind: ProxmoxCluster
-    name: pve-test-cluster
+    name: pve-example-cluster
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
 kind: ProxmoxCluster
 metadata:
-  name: pve-test-cluster
+  name: pve-example-cluster
   namespace: default
 spec:
   schedulerHints:
@@ -24,20 +26,20 @@ spec:
   allowedNodes:
     - pve
   controlPlaneEndpoint:
-    host: 10.10.30.200
+    host: 192.168.88.100
     port: 6443
   dnsServers:
-    - 10.10.30.1
+    - 192.168.88.1
   ipv4Config:
     addresses:
-      - 10.10.30.201-10.10.30.254
-    gateway: 10.10.30.1
+      - 192.168.88.101-192.168.88.150
+    gateway: 192.168.88.1
     prefix: 24
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
 kind: ProxmoxMachineTemplate
 metadata:
-  name: capi-test-cp
+  name: capi-example-cp
   namespace: default
 spec:
   template:
@@ -50,23 +52,24 @@ spec:
       full: true
       memoryMiB: 4096
       network:
-        default:
-          bridge: vmbr0
-          model: virtio
-          vlan: 30
+        networkDevices:
+          - name: net0
+            bridge: vmbr0
+            model: virtio
+            vlan: 30
       numCores: 4
       numSockets: 1
       sourceNode: pve
-      templateID: 1006
+      templateID: 1007
       checks:
         skipCloudInitStatus: true
       metadataSettings:
         providerIDInjection: true
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
 kind: ProxmoxMachineTemplate
 metadata:
-  name: capi-test-worker
+  name: capi-example-worker
   namespace: default
 spec:
   template:
@@ -79,14 +82,15 @@ spec:
       full: true
       memoryMiB: 4096
       network:
-        default:
-          bridge: vmbr0
-          model: virtio
-          vlan: 30
+        networkDevices:
+          - name: net0
+            bridge: vmbr0
+            model: virtio
+            vlan: 30
       numCores: 4
       numSockets: 1
       sourceNode: pve
-      templateID: 1006
+      templateID: 1007
       checks:
         skipCloudInitStatus: true
       metadataSettings:
@@ -95,14 +99,14 @@ spec:
 apiVersion: controlplane.cluster.x-k8s.io/v1alpha3
 kind: TalosControlPlane
 metadata:
-  name: capi-test-cp
+  name: capi-example-cp
 spec:
-  version: v1.33.0
+  version: v1.36.0
   replicas: 3
   infrastructureTemplate:
     kind: ProxmoxMachineTemplate
-    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
-    name: capi-test-cp
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+    name: capi-example-cp
     namespace: default
   controlPlaneConfig:
     controlplane:
@@ -110,6 +114,11 @@ spec:
       strategicPatches:
         - |
           machine:
+            time:
+              servers:
+                - ntp0.ntp-servers.net
+                - ntp1.ntp-servers.net
+                - ntp2.ntp-servers.net
             sysctls:
               net.netfilter.nf_conntrack_max: "262144"
             kernel:
@@ -127,11 +136,11 @@ spec:
                   - kube-system
             kubelet:
               extraArgs:
-                rotate-server-certificates: "true"
                 cloud-provider: external
+                rotate-server-certificates: "true"
             install:
               disk: /dev/sda
-              image: ghcr.io/siderolabs/installer:v1.12.7
+              image: ghcr.io/siderolabs/installer:v1.13.0
               extraKernelArgs:
                 - net.ifnames=0
             network:
@@ -139,7 +148,7 @@ spec:
                 - interface: eth0
                   dhcp: false
                   vip:
-                    ip: 10.10.30.200
+                    ip: 192.168.88.100
           cluster:
             network:
               cni:
@@ -155,15 +164,20 @@ spec:
 apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
 kind: TalosConfigTemplate
 metadata:
-  name: capi-test-worker-template
+  name: capi-example-worker
 spec:
   template:
     spec:
       generateType: worker
-      talosVersion: v1.12.7
+      talosVersion: v1.13.0
       strategicPatches:
         - |
           machine:
+            time:
+              servers:
+                - ntp0.ntp-servers.net
+                - ntp1.ntp-servers.net
+                - ntp2.ntp-servers.net
             features:
               kubePrism:
                 enabled: true
@@ -174,15 +188,15 @@ spec:
                 rotate-server-certificates: "true"
             install:
               disk: /dev/sda
-              image: ghcr.io/siderolabs/installer:v1.12.7
+              image: ghcr.io/siderolabs/installer:v1.13.0
 ---
-apiVersion: cluster.x-k8s.io/v1beta1
+apiVersion: cluster.x-k8s.io/v1beta2
 kind: MachineDeployment
 metadata:
-  name: capi-test-worker
+  name: capi-example-worker
   namespace: default
 spec:
-  clusterName: test-cluster
+  clusterName: example-cluster
   replicas: 3
   selector:
     matchLabels: null
@@ -190,12 +204,13 @@ spec:
     spec:
       bootstrap:
         configRef:
-          apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
+          apiGroup: bootstrap.cluster.x-k8s.io
           kind: TalosConfigTemplate
-          name: capi-test-worker-template
-      clusterName: test-cluster
+          name: capi-example-worker
+      clusterName: example-cluster
       infrastructureRef:
-        apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+        apiGroup: infrastructure.cluster.x-k8s.io
         kind: ProxmoxMachineTemplate
-        name: capi-test-worker
-      version: v1.33.0
+        name: capi-example-worker
+      version: v1.36.0
+---
