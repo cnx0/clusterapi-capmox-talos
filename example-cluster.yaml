@@ -60,7 +60,7 @@ spec:
       numCores: 4
       numSockets: 1
       sourceNode: pve
-      templateID: 1007
+      templateID: 1000
       checks:
         skipCloudInitStatus: true
       metadataSettings:
@@ -90,7 +90,7 @@ spec:
       numCores: 4
       numSockets: 1
       sourceNode: pve
-      templateID: 1007
+      templateID: 1000
       checks:
         skipCloudInitStatus: true
       metadataSettings:
@@ -195,6 +195,12 @@ kind: MachineDeployment
 metadata:
   name: capi-example-worker
   namespace: default
+  annotations:
+    cluster.x-k8s.io/cluster-api-autoscaler-node-group-min-size: "1"
+    cluster.x-k8s.io/cluster-api-autoscaler-node-group-max-size: "10"
+    capacity.cluster-autoscaler.kubernetes.io/memory: "8G"
+    capacity.cluster-autoscaler.kubernetes.io/cpu: "4"
+    capacity.cluster-autoscaler.kubernetes.io/ephemeral-disk: "30Gi"
 spec:
   clusterName: example-cluster
   replicas: 3

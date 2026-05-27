@@ -1,0 +1,104 @@
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+kind: ProxmoxMachineTemplate
+metadata:
+  name: capi-example-worker-gpu
+  namespace: default
+spec:
+  template:
+    spec:
+      disks:
+        bootVolume:
+          disk: scsi0
+          sizeGb: 20
+      format: qcow2
+      full: true
+      memoryMiB: 16384
+      network:
+        networkDevices:
+          - name: net0
+            bridge: vmbr0
+            model: virtio
+            vlan: 30
+      numCores: 4
+      numSockets: 1
+      sourceNode: pve
+      templateID: 1001
+      checks:
+        skipCloudInitStatus: true
+      metadataSettings:
+        providerIDInjection: true
+      tags:
+        - example
+        - worker
+        - gpu
+---
+apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
+kind: TalosConfigTemplate
+metadata:
+  name: capi-example-worker-gpu
+spec:
+  template:
+    spec:
+      generateType: worker
+      talosVersion: v1.13.0
+      strategicPatches:
+        - |
+          machine:
+            kernel:
+              modules:
+                - name: nvidia
+                - name: nvidia_uvm
+                - name: nvidia_drm
+                - name: nvidia_modeset
+            sysctls:
+              net.core.bpf_jit_harden: "1"
+            time:
+              servers:
+                - ntp0.ntp-servers.net
+                - ntp1.ntp-servers.net
+                - ntp2.ntp-servers.net
+            features:
+              kubePrism:
+                enabled: true
+                port: 7445
+            kubelet:
+              extraArgs:
+                cloud-provider: external
+                rotate-server-certificates: "true"
+                node-labels: "accelerator=nvidia,gpu=true"
+              extraConfig:
+                registerWithTaints:
+                  - key: nvidia.com/gpu
+                    value: "true"
+                    effect: NoSchedule
+            install:
+              disk: /dev/sda
+              image: factory.talos.dev/nocloud-installer/fad91d055be9791728e764d0ef7e2f93085abdee59db71e66c0a519dbee73a38:v1.13.0
+---
+apiVersion: cluster.x-k8s.io/v1beta2
+kind: MachineDeployment
+metadata:
+  name: capi-example-worker-gpu
+  namespace: default
+spec:
+  clusterName: example
+  replicas: 1
+  selector:
+    matchLabels: null
+  template:
+    metadata:
+      labels:
+        node-role.kubernetes.io/gpu: ""
+        nvidia.com/gpu.present: "true"
+    spec:
+      clusterName: example
+      bootstrap:
+        configRef:
+          apiGroup: bootstrap.cluster.x-k8s.io
+          kind: TalosConfigTemplate
+          name: capi-example-worker-gpu
+      infrastructureRef:
+        apiGroup: infrastructure.cluster.x-k8s.io
+        kind: ProxmoxMachineTemplate
+        name: capi-example-worker-gpu
+      version: v1.36.0

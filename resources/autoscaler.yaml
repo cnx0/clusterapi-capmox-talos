@@ -1,0 +1,8 @@
+cloudProvider: clusterapi
+autoDiscovery:
+  clusterName: core
+  namespace: default
+clusterAPIKubeconfigSecret: core-kubeconfig
+clusterAPIMode: kubeconfig-incluster
+extraEnv:
+  CAPI_VERSION: v1beta1

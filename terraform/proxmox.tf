@@ -8,6 +8,16 @@ resource "proxmox_download_file" "talos_image" {
   decompression_algorithm = "gz"
 }
 
+resource "proxmox_download_file" "talos_image_gpu" {
+  content_type = "iso"
+  datastore_id = "local"
+  node_name    = var.pve.node_name
+
+  url                     = "https://factory.talos.dev/image/fad91d055be9791728e764d0ef7e2f93085abdee59db71e66c0a519dbee73a38/${var.talos.version}/nocloud-amd64.raw.gz"
+  file_name               = "talos-nocloud-amd64-${var.talos.version}-gpu.img"
+  decompression_algorithm = "gz"
+}
+
 resource "proxmox_virtual_environment_vm" "template" {
   name      = "talos-template-${var.talos.version}"
   tags      = ["talos"]
@@ -54,6 +64,59 @@ resource "proxmox_virtual_environment_vm" "template" {
   }
 }
 
+resource "proxmox_virtual_environment_vm" "template-gpu" {
+  count = var.pve.gpu == "true" ? 0 : 1
+
+  name      = "talos-template-${var.talos.version}-gpu"
+  tags      = ["talos"]
+  node_name = var.pve.node_name
+  vm_id     = var.pve.template_vm_id + 1
+
+  template = true
+
+  cpu {
+    cores = 4
+    type  = "x86-64-v2-AES"
+  }
+
+  memory {
+    dedicated = var.pve.cp_mem
+  }
+
+  disk {
+    datastore_id = var.pve.storage_disks
+    file_id      = proxmox_download_file.talos_image_gpu.id
+    discard      = "on"
+    ssd          = true
+    interface    = "scsi0"
+    size         = 30
+  }
+
+  efi_disk {
+    datastore_id = var.pve.storage_efi
+  }
+
+  network_device {
+    bridge = "vmbr0"
+  }
+
+  operating_system {
+    type = "l26"
+  }
+
+  machine = "q35"
+  bios    = "ovmf"
+
+  agent {
+    enabled = true
+  }
+
+  hostpci {
+    device  = "hostpci0"
+    mapping = var.pve.gpu_name
+  }
+}
+
 resource "proxmox_virtual_environment_vm" "controlplane" {
   name      = var.talos.vm_name
   tags      = ["talos", "${var.talos.cluster_name}"]
@@ -69,9 +132,12 @@ resource "proxmox_virtual_environment_vm" "controlplane" {
     dedicated = var.pve.cp_mem
   }
 
+  clone {
+    vm_id = var.pve.template_vm_id
+  }
+
   disk {
     datastore_id = var.pve.storage_disks
-    file_id      = proxmox_download_file.talos_image.id
     discard      = "on"
     ssd          = true
     interface    = "scsi0"

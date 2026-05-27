@@ -13,8 +13,10 @@ pve = {
   "cp_mem"            = 8192
   "dns_domain"        = ""
   "dns_server"        = ""
-  "vlan_id"           = ""
+  "vlan_id"           = 0
   "gateway"           = ""
+  "gpu"               = false
+  "gpu_name"          = ""
 }
 
 talos = {
