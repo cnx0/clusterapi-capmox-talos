@@ -19,6 +19,13 @@ spec:
             bridge: vmbr0
             model: virtio
             vlan: 30
+          - name: net1
+            bridge: vmbr1
+            model: virtio
+            ipPoolRef:
+              - apiGroup: ipam.cluster.x-k8s.io
+                kind: GlobalInClusterIPPool
+                name: example-storage-pool
       numCores: 4
       numSockets: 1
       sourceNode: pve
@@ -40,8 +47,37 @@ spec:
   template:
     spec:
       generateType: worker
-      talosVersion: v1.13.0
+      talosVersion: v1.14.2
       strategicPatches:
+        - |
+          apiVersion: v1alpha1
+          kind: ResolverConfig
+          nameservers:
+            - address: 1.1.1.1
+            - address: 1.0.0.1
+            - address: 8.8.8.8
+            - address: 8.8.4.4
+          searchDomains:
+            domains:
+              - int.home.local
+        - |
+          apiVersion: v1alpha1
+          kind: KubeNodeConfig
+          labels:
+            accelerator: nvidia
+            gpu: "true"
+          taints:
+            nvidia.com/gpu: "true:NoSchedule"
+        - |
+          apiVersion: v1alpha1
+          kind: KubeletConfig
+          extraArgs:
+            cloud-provider: external
+            rotate-server-certificates: "true"
+        - |
+          apiVersion: v1alpha1
+          kind: KubePrismConfig
+          port: 7445
         - |
           machine:
             kernel:
@@ -57,23 +93,9 @@ spec:
                 - ntp0.ntp-servers.net
                 - ntp1.ntp-servers.net
                 - ntp2.ntp-servers.net
-            features:
-              kubePrism:
-                enabled: true
-                port: 7445
-            kubelet:
-              extraArgs:
-                cloud-provider: external
-                rotate-server-certificates: "true"
-                node-labels: "accelerator=nvidia,gpu=true"
-              extraConfig:
-                registerWithTaints:
-                  - key: nvidia.com/gpu
-                    value: "true"
-                    effect: NoSchedule
             install:
               disk: /dev/sda
-              image: factory.talos.dev/nocloud-installer/fad91d055be9791728e764d0ef7e2f93085abdee59db71e66c0a519dbee73a38:v1.13.0
+              image: factory.talos.dev/nocloud-installer/fad91d055be9791728e764d0ef7e2f93085abdee59db71e66c0a519dbee73a38:v1.14.2
 ---
 apiVersion: cluster.x-k8s.io/v1beta2
 kind: MachineDeployment

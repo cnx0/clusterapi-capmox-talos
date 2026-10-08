@@ -36,6 +36,15 @@ spec:
     gateway: 192.168.88.1
     prefix: 24
 ---
+apiVersion: ipam.cluster.x-k8s.io/v1alpha2
+kind: GlobalInClusterIPPool
+metadata:
+  name: example-storage-pool
+spec:
+  addresses:
+    - 172.16.100.3-172.16.100.100
+  prefix: 24
+---
 apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
 kind: ProxmoxMachineTemplate
 metadata:
@@ -57,6 +66,13 @@ spec:
             bridge: vmbr0
             model: virtio
             vlan: 30
+          - name: net1
+            bridge: vmbr1
+            model: virtio
+            ipPoolRef:
+              - apiGroup: ipam.cluster.x-k8s.io
+                kind: GlobalInClusterIPPool
+                name: example-storage-pool
       numCores: 4
       numSockets: 1
       sourceNode: pve
@@ -87,6 +103,13 @@ spec:
             bridge: vmbr0
             model: virtio
             vlan: 30
+          - name: net1
+            bridge: vmbr1
+            model: virtio
+            ipPoolRef:
+              - apiGroup: ipam.cluster.x-k8s.io
+                kind: GlobalInClusterIPPool
+                name: example-storage-pool
       numCores: 4
       numSockets: 1
       sourceNode: pve
@@ -113,6 +136,35 @@ spec:
       generateType: controlplane
       strategicPatches:
         - |
+          apiVersion: v1alpha1
+          kind: ResolverConfig
+          nameservers:
+            - address: 1.1.1.1
+            - address: 1.0.0.1
+            - address: 8.8.8.8
+            - address: 8.8.4.4
+          searchDomains:
+            domains:
+              - int.home.local
+        - |
+          apiVersion: v1alpha1
+          kind: KubeFlannelCNIConfig
+          $patch: delete
+        - |
+          apiVersion: v1alpha1
+          kind: KubeProxyConfig
+          $patch: delete
+        - |
+          apiVersion: v1alpha1
+          kind: KubeletConfig
+          extraArgs:
+            cloud-provider: external
+            rotate-server-certificates: "true"
+        - |
+          apiVersion: v1alpha1
+          kind: KubePrismConfig
+          port: 7445
+        - |
           machine:
             time:
               servers:
@@ -125,22 +177,15 @@ spec:
               modules:
                 - name: br_netfilter
             features:
-              kubePrism:
-                enabled: true
-                port: 7445
               kubernetesTalosAPIAccess:
                 enabled: true
                 allowedRoles:
                   - os:reader
                 allowedKubernetesNamespaces:
                   - kube-system
-            kubelet:
-              extraArgs:
-                cloud-provider: external
-                rotate-server-certificates: "true"
             install:
               disk: /dev/sda
-              image: ghcr.io/siderolabs/installer:v1.13.0
+              image: ghcr.io/siderolabs/installer:v1.14.2
               extraKernelArgs:
                 - net.ifnames=0
             network:
@@ -150,11 +195,6 @@ spec:
                   vip:
                     ip: 192.168.88.100
           cluster:
-            network:
-              cni:
-                name: none
-            proxy:
-              disabled: true
             externalCloudProvider:
               enabled: true
               manifests:
@@ -169,8 +209,29 @@ spec:
   template:
     spec:
       generateType: worker
-      talosVersion: v1.13.0
+      talosVersion: v1.14.2
       strategicPatches:
+        - |
+          apiVersion: v1alpha1
+          kind: ResolverConfig
+          nameservers:
+            - address: 1.1.1.1
+            - address: 1.0.0.1
+            - address: 8.8.8.8
+            - address: 8.8.4.4
+          searchDomains:
+            domains:
+              - int.home.local
+        - |
+          apiVersion: v1alpha1
+          kind: KubeletConfig
+          extraArgs:
+            cloud-provider: external
+            rotate-server-certificates: "true"
+        - |
+          apiVersion: v1alpha1
+          kind: KubePrismConfig
+          port: 7445
         - |
           machine:
             time:
@@ -178,17 +239,9 @@ spec:
                 - ntp0.ntp-servers.net
                 - ntp1.ntp-servers.net
                 - ntp2.ntp-servers.net
-            features:
-              kubePrism:
-                enabled: true
-                port: 7445
-            kubelet:
-              extraArgs:
-                cloud-provider: external
-                rotate-server-certificates: "true"
             install:
               disk: /dev/sda
-              image: ghcr.io/siderolabs/installer:v1.13.0
+              image: ghcr.io/siderolabs/installer:v1.14.2
 ---
 apiVersion: cluster.x-k8s.io/v1beta2
 kind: MachineDeployment
