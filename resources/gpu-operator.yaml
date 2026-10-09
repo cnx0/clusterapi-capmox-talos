@@ -1,3 +1,33 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gpu-operator-bootstrap
+  namespace: default
+data:
+  gpu-operator-namespace.yaml: |
+    apiVersion: v1
+    kind: Namespace
+    metadata:
+      name: gpu-operator
+      labels:
+        pod-security.kubernetes.io/enforce: privileged
+        pod-security.kubernetes.io/audit: privileged
+        pod-security.kubernetes.io/warn: privileged
+---
+apiVersion: addons.cluster.x-k8s.io/v1beta2
+kind: ClusterResourceSet
+metadata:
+  name: gpu-operator-bootstrap
+  namespace: default
+spec:
+  strategy: Reconcile
+  clusterSelector:
+    matchLabels:
+      nvidia-operator: enabled
+  resources:
+    - kind: ConfigMap
+      name: gpu-operator-bootstrap
+---
 apiVersion: addons.cluster.x-k8s.io/v1alpha1
 kind: HelmChartProxy
 metadata:
@@ -13,6 +43,16 @@ spec:
   options:
     waitForJobs: true
     wait: true
-    timeout: 5m
+    timeout: 30m
     install:
       createNamespace: true
+  valuesTemplate: |
+    driver:
+      enabled: false
+    toolkit:
+      enabled: false
+    hostPaths:
+      driverInstallDir: /usr/local
+    cdi:
+      enabled: true
+      nriPluginEnabled: false

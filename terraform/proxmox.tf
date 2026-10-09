@@ -13,7 +13,7 @@ resource "proxmox_download_file" "talos_image_gpu" {
   datastore_id = "local"
   node_name    = var.pve.node_name
 
-  url                     = "https://factory.talos.dev/image/fad91d055be9791728e764d0ef7e2f93085abdee59db71e66c0a519dbee73a38/${var.talos.version}/nocloud-amd64.raw.gz"
+  url                     = "https://factory.talos.dev/image/c21fe6ab53999ddf284e2fead08c128b2bd5cec8788deb21b3684f6bf479cab7/${var.talos.version}/nocloud-amd64.raw.gz"
   file_name               = "talos-nocloud-amd64-${var.talos.version}-gpu.img"
   decompression_algorithm = "gz"
 }
