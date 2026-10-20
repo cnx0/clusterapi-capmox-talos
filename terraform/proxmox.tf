@@ -3,7 +3,7 @@ resource "proxmox_download_file" "talos_image" {
   datastore_id = "local"
   node_name    = var.pve.node_name
 
-  url                     = "https://factory.talos.dev/image/ca757c5bc571372976cf96c116ff9c22362d7226dcc5b7feb140bd53a71aae32/${var.talos.version}/nocloud-amd64.raw.gz"
+  url                     = "https://factory.talos.dev/image/71cc5cc2875b24f44fb3235db45df06e3164d4fc117fa125e0b9ba1375782a24/${var.talos.version}/nocloud-amd64.raw.gz"
   file_name               = "talos-nocloud-amd64-${var.talos.version}.img"
   decompression_algorithm = "gz"
 }
